@@ -1,0 +1,272 @@
+From: Mathis Mueller <hello@mathismueller.eu>
+Date: Mon, 16 Nov 2026 13:35:00 +0100
+Subject: [PATCH] ARM: dts: sun8i: h3: Add FocalCrest GearHub H3
+
+Add Device Tree for the FocalCrest GearHub H3 (Hornbach Smart Home
+Gateway V2 / RFC24 V 2.0), an Allwinner H3 board with 8 GiB eMMC,
+100M Ethernet, AP6212/BCM43430 Wi-Fi/BT, PCF8563 RTC, SPI0 LEDs,
+EFR32MG24 Zigbee/Thread and EFR32ZG23 Z-Wave radios, and an external
+PL10 GPIO watchdog.
+
+Signed-off-by: Mathis Mueller <hello@mathismueller.eu>
+---
+ arch/arm/boot/dts/allwinner/Makefile          |   1 +
+ .../boot/dts/allwinner/sun8i-h3-focalcrest-gearhub.dts | 242 ++++++++++++++++++++++
+ 2 files changed, 243 insertions(+)
+ create mode 100644 arch/arm/boot/dts/allwinner/sun8i-h3-focalcrest-gearhub.dts
+
+--- a/arch/arm/boot/dts/allwinner/Makefile
++++ b/arch/arm/boot/dts/allwinner/Makefile
+@@ -232,6 +232,7 @@ dtb-$(CONFIG_MACH_SUN8I) += \
+ 	sun8i-h3-bananapi-m2-plus.dtb \
+ 	sun8i-h3-bananapi-m2-plus-v1.2.dtb \
+ 	sun8i-h3-beelink-x2.dtb \
++	sun8i-h3-focalcrest-gearhub.dtb \
+ 	sun8i-h3-libretech-all-h3-cc.dtb \
+ 	sun8i-h3-mapleboard-mp130.dtb \
+ 	sun8i-h3-nanopi-duo2.dtb \
+--- /dev/null
++++ b/arch/arm/boot/dts/allwinner/sun8i-h3-focalcrest-gearhub.dts
+@@ -0,0 +1,242 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Device Tree Source for FocalCrest GearHub H3 (Hornbach Smart Home Gateway V2)
++ */
++
++/dts-v1/;
++#include "sun8i-h3.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/interrupt-controller/irq.h>
++
++/ {
++	model = "FocalCrest GearHub H3";
++	compatible = "focalcrest,gearhub", "allwinner,sun8i-h3";
++
++	aliases {
++		ethernet0 = &emac;
++		mmc1 = &mmc2;
++		serial0 = &uart0;
++		serial1 = &uart1;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		key-reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&r_pio 0 4 GPIO_ACTIVE_LOW>; /* PL4 */
++		};
++	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-boot-on;
++		enable-active-high;
++		gpio = <&r_pio 0 2 GPIO_ACTIVE_HIGH>; /* PL2 */
++	};
++
++	reg_vcc3v3: vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++	};
++
++	reg_vcc_zigbee: vcc-zigbee {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_zigbee";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-boot-on;
++		gpios = <&pio 3 16 GPIO_ACTIVE_LOW>; /* PD16 */
++	};
++
++	watchdog {
++		compatible = "linux,wdt-gpio";
++		always-running;
++		gpios = <&r_pio 0 10 GPIO_ACTIVE_HIGH>; /* PL10 */
++		hw_algo = "level";
++		hw_margin_ms = <100>;
++	};
++
++	wifi_pwrseq: wifi-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&pio 6 12 GPIO_ACTIVE_LOW>; /* PG12 */
++		clocks = <&rtc_pcf8563>;
++		clock-names = "ext_clock";
++	};
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&ehci2 {
++	status = "okay";
++};
++
++&emac {
++	phy-handle = <&int_mii_phy>;
++	phy-mode = "mii";
++	status = "okay";
++};
++
++&i2c0 {
++	status = "okay";
++
++	rtc_pcf8563: rtc@51 {
++		compatible = "nxp,pcf8563";
++		reg = <0x51>;
++		#clock-cells = <0>;
++	};
++};
++
++&i2c1 {
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_vcc3v3>;
++	vqmmc-supply = <&reg_vcc3v3>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <1>;
++	non-removable;
++	keep-power-in-suspend;
++	status = "okay";
++
++	brcmf: wifi@1 {
++		compatible = "brcm,bcm4329-fmac";
++		reg = <1>;
++		interrupt-parent = <&pio>;
++		interrupts = <6 10 IRQ_TYPE_LEVEL_LOW>; /* PG10 */
++		interrupt-names = "host-wake";
++	};
++};
++
++&mmc2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc2_8bit_pins>;
++	vmmc-supply = <&reg_vcc3v3>;
++	vqmmc-supply = <&reg_vcc3v3>;
++	bus-width = <8>;
++	non-removable;
++	keep-power-in-suspend;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&ohci2 {
++	status = "okay";
++};
++
++&r_pio {
++	vcc-pl-supply = <&reg_vcc3v3>;
++};
++
++&pio {
++	vcc-pa-supply = <&reg_vcc3v3>;
++	vcc-pc-supply = <&reg_vcc3v3>;
++	vcc-pd-supply = <&reg_vcc3v3>;
++	vcc-pg-supply = <&reg_vcc3v3>;
++
++	zigbee-reset-hog {
++		gpio-hog;
++		gpios = <3 9 GPIO_ACTIVE_HIGH>; /* PD9 */
++		output-high;
++		line-name = "zigbee-reset-n";
++	};
++
++	zwave-reset-hog {
++		gpio-hog;
++		gpios = <3 15 GPIO_ACTIVE_HIGH>; /* PD15 */
++		output-high;
++		line-name = "zwave-reset-n";
++	};
++
++	led-enable-hog {
++		gpio-hog;
++		gpios = <3 17 GPIO_ACTIVE_HIGH>; /* PD17 */
++		output-high;
++		line-name = "led-enable";
++	};
++};
++
++&spi0 {
++	status = "okay";
++
++	spidev@0 {
++		compatible = "menlo,m53cpld";
++		reg = <0>;
++		spi-max-frequency = <25000000>;
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pa_pins>;
++	status = "okay";
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
++	uart-has-rtscts;
++	status = "okay";
++
++	bluetooth {
++		compatible = "brcm,bcm43438-bt";
++		clocks = <&rtc_pcf8563>;
++		clock-names = "lpo";
++		vbat-supply = <&reg_vcc3v3>;
++		vddio-supply = <&reg_vcc3v3>;
++		device-wakeup-gpios = <&pio 0 6 GPIO_ACTIVE_HIGH>; /* PA6 */
++		host-wakeup-gpios = <&pio 0 8 GPIO_ACTIVE_HIGH>;   /* PA8 */
++		shutdown-gpios = <&pio 3 4 GPIO_ACTIVE_HIGH>;      /* PD4 */
++	};
++};
++
++&uart2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart2_pins>, <&uart2_rts_cts_pins>;
++	uart-has-rtscts;
++	status = "okay";
++};
++
++&uart3 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart3_pins>;
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usbphy {
++	usb0_id_det-gpios = <&pio 0 20 GPIO_ACTIVE_HIGH>; /* PA20 */
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};

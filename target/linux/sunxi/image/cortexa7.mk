@@ -23,6 +23,22 @@ define Device/cubietech_cubietruck
 endef
 TARGET_DEVICES += cubietech_cubietruck
 
+define Device/focalcrest_gearhub
+  $(call Device/FitImageGzip)
+  DEVICE_VENDOR := FocalCrest
+  DEVICE_MODEL := GearHub H3
+  DEVICE_ALT0_VENDOR := Hornbach
+  DEVICE_ALT0_MODEL := Smart Home Gateway
+  DEVICE_ALT0_VARIANT := V2 (RFC24)
+  DEVICE_PACKAGES := kmod-brcmfmac cypress-firmware-43430-sdio \
+	wpad-basic-mbedtls kmod-gpio-button-hotplug kmod-rtc-sunxi \
+	kmod-rtc-pcf8563 kmod-spi-dev kmod-bluetooth kmod-hci-uart \
+	bluez-utils gpiod-tools i2c-tools ser2net
+  SOC := sun8i-h3
+  SUNXI_DTS := sun8i-h3-focalcrest-gearhub
+endef
+TARGET_DEVICES += focalcrest_gearhub
+
 define Device/friendlyarm_nanopi-m1-plus
   $(call Device/FitImageGzip)
   DEVICE_VENDOR := FriendlyARM
