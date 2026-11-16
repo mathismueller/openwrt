@@ -180,7 +180,7 @@ endef
 define U-Boot/nanopi_m1_plus
   BUILD_SUBTARGET:=cortexa7
   NAME:=NanoPi M1 Plus (H3)
-  BUILD_DEVICES:=friendlyarm_nanopi-m1-plus
+  BUILD_DEVICES:=friendlyarm_nanopi-m1-plus focalcrest_gearhub
 endef
 
 define U-Boot/zeropi
